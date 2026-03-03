@@ -4,7 +4,7 @@ This example allows you to deploy a remote MCP server that doesn't require authe
 
 ## Get started:
 
-[![Deploy to Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/ai/tree/main/demos/remote-mcp-authless)
+[Deploy to Workers](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/ai/tree/main/demos/remote-mcp-authless)
 
 This will deploy your MCP server to a URL like: `remote-mcp-server-authless.<your-account>.workers.dev/sse`
 
@@ -18,11 +18,22 @@ npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/rem
 
 To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`.
 
+## Test with MCP Inspector (local)
+
+This server uses **Streamable HTTP** at `/mcp`, not stdio. In the Inspector:
+
+1. Run `npm run dev` so the Worker is at `http://localhost:8787` (or the port Wrangler prints).
+2. Run `npx @modelcontextprotocol/inspector@latest` and open the URL it prints.
+3. In the Inspector, choose **"Enter URL"** (or equivalent) — do **not** use "Run command (stdio)".
+4. Enter `http://localhost:8787/mcp` and click Connect, then List tools.
+
+Using "Run command" / stdio will fail with a 500 because this server is HTTP-only.
+
 ## Connect to Cloudflare AI Playground
 
 You can connect to your MCP server from the Cloudflare AI Playground, which is a remote MCP client:
 
-1. Go to https://playground.ai.cloudflare.com/
+1. Go to [https://playground.ai.cloudflare.com/](https://playground.ai.cloudflare.com/)
 2. Enter your deployed MCP server URL (`remote-mcp-server-authless.<your-account>.workers.dev/sse`)
 3. You can now use your MCP tools directly from the playground!
 

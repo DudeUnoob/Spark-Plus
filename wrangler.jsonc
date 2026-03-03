@@ -17,6 +17,15 @@
 			"new_sqlite_classes": ["BasicTester", "OtherServer"],
 			"tag": "v1",
 		},
+		{
+			"tag": "v2",
+			"renamed_classes": [
+				{
+					"from": "MyMCP",
+					"to": "OtherServer",
+				},
+			],
+		},
 	],
 	"durable_objects": {
 		"bindings": [

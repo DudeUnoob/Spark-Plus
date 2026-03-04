@@ -17,17 +17,17 @@
 			"tag": "v1",
 			"new_sqlite_classes": ["BasicTester"],
 		},
+		// {
+		// 	"tag": "v2",
+		// 	"renamed_classes": [
+		// 		{
+		// 			"from": "MyMCP",
+		// 			"to": "BasicTester",
+		// 		},
+		// 	],
+		// },
 		{
 			"tag": "v2",
-			"renamed_classes": [
-				{
-					"from": "MyMCP",
-					"to": "BasicTester",
-				},
-			],
-		},
-		{
-			"tag": "v3",
 			"new_sqlite_classes": ["OtherServer"],
 		},
 	],

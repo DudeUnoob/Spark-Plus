@@ -17,29 +17,32 @@
 			"tag": "v1",
 			"new_sqlite_classes": ["BasicTester"],
 		},
-		// {
-		// 	"tag": "v2",
-		// 	"renamed_classes": [
-		// 		{
-		// 			"from": "MyMCP",
-		// 			"to": "BasicTester",
-		// 		},
-		// 	],
-		// },
 		{
 			"tag": "v2",
+			// "renamed_classes": [
+			// 	{
+			// 		"from": "MyMCP",
+			// 		"to": "BasicTester",
+			// 	},
+			// ],
+		},
+		{
+			"tag": "v3",
 			"new_sqlite_classes": ["OtherServer"],
 		},
+		// {
+		// 	"tag": "v4","
+		// },
 	],
 	"durable_objects": {
 		"bindings": [
 			{
 				"class_name": "BasicTester",
-				"name": "RANDOM",
+				"name": "basic",
 			},
 			{
 				"class_name": "OtherServer",
-				"name": "MCP_OBJECT",
+				"name": "other",
 			},
 		],
 	},

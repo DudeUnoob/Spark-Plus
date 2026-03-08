@@ -1,62 +1,53 @@
-# Building a Remote MCP Server on Cloudflare (Without Auth)
+# Spark Plus
 
-This example allows you to deploy a remote MCP server that doesn't require authentication on Cloudflare Workers.
+A **collection of multiple separate but related MCP servers** on Cloudflare Workers for UT's AI Spark system. Each server runs as a Durable Object with its own tools and URL path, so it is treated as a separate MCP server for all intents and purposes.
 
-## Get started:
+## What’s in this repo
 
-[Deploy to Workers](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/ai/tree/main/demos/remote-mcp-authless)
+- **Servers** – MCP servers defined with `defineMcpServer` / `defineTool`, each bound to a Durable Object and a route.
+- **Shared** –  All shared funcionality between servers.`src/shared/mcp-server-creator.ts` is where the `defineMcpServer` function which is how all servers are created.
 
-This will deploy your MCP server to a URL like: `remote-mcp-server-authless.<your-account>.workers.dev/sse`
-
-Alternatively, you can use the command line below to get the remote MCP Server created on your local machine:
+## Quick start
 
 ```bash
-npm create cloudflare@latest -- my-mcp-server --template=cloudflare/ai/demos/remote-mcp-authless
+npm install
+npm run dev
 ```
 
-## Customizing your MCP Server
+The Worker runs at `http://localhost:8787`. Each MCP server is served at its path (e.g. `http://localhost:8787/basic-tester`, `http://localhost:8787/other`).
 
-To add your own [tools](https://developers.cloudflare.com/agents/model-context-protocol/tools/) to the MCP server, define each tool inside the `init()` method of `src/index.ts` using `this.server.tool(...)`.
+## Deploy
 
-## Test with MCP Inspector (local)
+```bash
+npm run deploy
+```
 
-This server uses **Streamable HTTP** at `/mcp`, not stdio. In the Inspector:
+Uses the `spark-plus` Worker name in `wrangler.jsonc`. After deploy, server URLs are `https://spark-plus.<your-subdomain>.workers.dev/<server-path>`.
 
-1. Run `npm run dev` so the Worker is at `http://localhost:8787` (or the port Wrangler prints).
+## Adding a server
+
+1. **Implement the server** in `src/servers/<name>/main.ts` using `defineMcpServer` and `defineTool` from `src/shared/mcp-server-creator.ts`.
+2. **Register the Durable Object** in `wrangler.jsonc`: add a migration for the new class and a binding in `durable_objects.bindings`.
+3. **Wire the route** in `src/project-source.ts`: import the server class and its metadata, add the metadata to the `MCP_SERVERS` array, and export the class in the `export { ... }` at the bottom.
+
+The request handler in `src/project-source.ts` matches the request path to each server’s `url_prefix` and forwards to that server.
+
+## Testing with MCP Inspector
+
+This project uses **Streamable HTTP**, not stdio:
+
+1. Run `npm run dev` so the Worker is at `http://localhost:8787`.
 2. Run `npx @modelcontextprotocol/inspector@latest` and open the URL it prints.
-3. In the Inspector, choose **"Enter URL"** (or equivalent) — do **not** use "Run command (stdio)".
-4. Enter `http://localhost:8787/mcp` and click Connect, then List tools.
+3. In the Inspector, choose **“Enter URL”** (do not use “Run command (stdio)”).
+4. Enter a server URL, e.g. `http://localhost:8787/basic-tester`, then Connect and List tools.
 
-Using "Run command" / stdio will fail with a 500 because this server is HTTP-only.
+## Scripts
 
-## Connect to Cloudflare AI Playground
+| Command              | Purpose                                       |
+| -------------------- | --------------------------------------------- |
+| `npm run dev`        | Local development                             |
+| `npm run cf-typegen` | Regenerate Worker types after binding changes |
+| `npm run type-check` | TypeScript check                              |
+| `npm run lint`       | Lint; `npm run lint:fix` to fix               |
 
-You can connect to your MCP server from the Cloudflare AI Playground, which is a remote MCP client:
-
-1. Go to [https://playground.ai.cloudflare.com/](https://playground.ai.cloudflare.com/)
-2. Enter your deployed MCP server URL (`remote-mcp-server-authless.<your-account>.workers.dev/sse`)
-3. You can now use your MCP tools directly from the playground!
-
-## Connect Claude Desktop to your MCP server
-
-You can also connect to your remote MCP server from local MCP clients, by using the [mcp-remote proxy](https://www.npmjs.com/package/mcp-remote).
-
-To connect to your MCP server from Claude Desktop, follow [Anthropic's Quickstart](https://modelcontextprotocol.io/quickstart/user) and within Claude Desktop go to Settings > Developer > Edit Config.
-
-Update with this configuration:
-
-```json
-{
-	"mcpServers": {
-		"calculator": {
-			"command": "npx",
-			"args": [
-				"mcp-remote",
-				"http://localhost:8787/sse" // or remote-mcp-server-authless.your-account.workers.dev/sse
-			]
-		}
-	}
-}
-```
-
-Restart Claude and you should see the tools become available.
+For Cloudflare Workers and product limits, see [AGENTS.md](./AGENTS.md).

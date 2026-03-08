@@ -1,4 +1,3 @@
-// shared/classes.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
 	AnySchema,
@@ -6,51 +5,51 @@ import {
 } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { McpAgent } from "agents/mcp";
 import type {
-	AgentMetadata,
+	McpServerMetadata,
 	RegisterToolDefinition,
 	RegisterToolDefinitionFunction,
 	Version,
-} from "./types";
+} from "./general-types";
 
 /**
- * All the things required for an agent. Tools holds all the real functionality of the agent.
+ * All the things required for a MCP server. Tools holds all the real functionality of the MCP server.
  */
-type AgentConfig = {
+type McpConfig = {
 	name: string;
 	version: Version;
 	binding: string;
 	url_prefix: string;
-	tools: RegisterToolDefinition<any, any>[];
+	tools: RegisterToolDefinition<any, any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 /**
- * Creates a wrapper around `McpAgent` that defines an agent with a server and tools.
+ * Creates a wrapper around `McpAgent` that defines a protocol with a server and tools.
  *
  * Notes
  * -----
- * The returned class is always named `AgentClass`. Cloudflare requires agents to
+ * The returned class is always named `McpServerClass`. Cloudflare requires MCP servers to
  * have unique exported names, so when destructuring the result you should rename
  * the class to something descriptive.
  *
  * Example:
  * ```ts
- * const { AgentClass: MyAgent, metadata } = createAgent(config);
+ * const { McpServerClass: MyMcpServer, metadata } = createMcpServer(config);
  * ```
  *
- * @param config Configuration for the agent.
+ * @param config Configuration for the protocol.
  * Includes:
- * - `name` – agent name
- * - `version` – agent version
+ * - `name` – MCP server name
+ * - `version` – MCP server version
  * - `binding` – Cloudflare binding
- * - `url_prefix` – route prefix
+ * - `url_prefix` – MCP server route prefix
  * - `tools` – array of tools created with `defineTool`
  *
  * @returns Object containing:
- * - `AgentClass` – the generated agent class
- * - `metadata` – associated metadata for the agent
+ * - `McpServerClass` – the generated MCP server class
+ * - `metadata` – associated metadata for the MCP server
  */
-export function defineAgent(config: AgentConfig) {
-	const AgentClass = class extends McpAgent {
+export function defineMcpServer(config: McpConfig) {
+	const McpServerClass = class extends McpAgent {
 		server = new McpServer({
 			name: config.name,
 			version: config.version,
@@ -63,15 +62,15 @@ export function defineAgent(config: AgentConfig) {
 		}
 	};
 
-	const metadata: AgentMetadata = {
+	const metadata: McpServerMetadata = {
 		title: config.name,
 		version: config.version,
 		binding: config.binding,
 		url_prefix: config.url_prefix,
-		server: AgentClass as unknown as typeof McpAgent,
+		server: McpServerClass as unknown as typeof McpAgent,
 	};
 
-	return { AgentClass, metadata };
+	return { McpServerClass, metadata };
 }
 
 /**
@@ -84,12 +83,11 @@ export function defineAgent(config: AgentConfig) {
  * In particular, it:
  * - Infers input/output argument types from the provided schemas
  * - Maps the tool definition fields into the `{ name, config, cb }` format
- * - Returns a correctly typed `RegisterToolDefinition`
+ * - Returns a correctly typed `RegisterToolDefinition` suitable for MCP server registration
  *
  * @param def Tool definition describing the tool's metadata, schemas, and handler.
  *
- * @returns A normalized `RegisterToolDefinition` object suitable for agent
- * registration.
+ * @returns A normalized `RegisterToolDefinition` object suitable for MCP server registration
  */
 export function defineTool<
 	OutputArgs extends ZodRawShapeCompat | AnySchema,

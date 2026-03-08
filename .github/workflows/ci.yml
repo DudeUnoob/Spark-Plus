@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run cf-typegen
+      - run: npm run type-check
+
+  wrangler-config-guard:
+    name: Protect wrangler.jsonc
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check for wrangler.jsonc changes
+        run: |
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- wrangler.jsonc)
+          if [ -z "$DIFF" ]; then
+            echo "No changes to wrangler.jsonc - OK"
+            exit 0
+          fi
+          echo "=== wrangler.jsonc diff ==="
+          echo "$DIFF"
+          echo "========================="
+          if echo "$DIFF" | grep -qE '^-[^-]'; then
+            echo "::error::wrangler.jsonc has removals or edits. Only additions are allowed. See the comment at the top of the file."
+            exit 1
+          fi
+          echo "::warning::wrangler.jsonc was modified (additions only). Consider if this is intentional."
+          exit 0

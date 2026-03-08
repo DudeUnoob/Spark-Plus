@@ -1,11 +1,22 @@
 import type { ToolCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { AnySchema, ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import type {
+	AnySchema,
+	ZodRawShapeCompat,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { McpAgent } from "agents/mcp";
 
 export type Version = `${number}.${number}.${number}`;
 
-export type MCPResponseType = "text" | "audio" | "image" | "recourse" | "recourse_link";
+/**
+ * The current options given by cloudflare for the MCP response type.
+ */
+export type McpResponseType =
+	| "text"
+	| "audio"
+	| "image"
+	| "recourse"
+	| "recourse_link";
 
 /**
  * The type for a MCP response. Useful for external tool functions that return a complete response.
@@ -13,22 +24,22 @@ export type MCPResponseType = "text" | "audio" | "image" | "recourse" | "recours
  * @param T - The type of the response. Can be "text", "audio", "image", "recourse", or "recourse_link".
  * @returns A Promise that resolves to a MCP response object
  */
-export type MCPResponse<T extends MCPResponseType> = Promise<{
+export type McpResponse<T extends McpResponseType> = Promise<{
 	content: { type: T; text: string }[];
 }>;
 
 /**
- * The type for an agent metadata object.
+ * The type for a MCP server metadata object.
  *
- * @param title - The title of the agent to display in the mcp server
- * @param version - The version of the agent
- * @param url_prefix - The URL prefix to use on the mcp server for the agent
- * @param binding - The durable object binding for the agent used in the worker
- * @param server - The actual mcp agent for calling .serve()
+ * @param title - The title of the MCP server to display in the MCP server
+ * @param version - The version of the MCP server. Default to "1.0.0".
+ * @param url_prefix - The URL prefix to use on the MCP server for the MCP server
+ * @param binding - The durable object binding for the MCP server used in the worker
+ * @param server - The actual MCP server for calling .serve()
  */
-export type AgentMetadata = {
+export type McpServerMetadata = {
 	title: string;
-	version: string;
+	version: Version;
 	url_prefix: string;
 	binding: string;
 	server: typeof McpAgent;

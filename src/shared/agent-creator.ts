@@ -1,24 +1,53 @@
 // shared/classes.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+	AnySchema,
+	ZodRawShapeCompat,
+} from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { McpAgent } from "agents/mcp";
-import type { AgentMetadata, RegisterToolDefinition } from "./types";
+import type {
+	AgentMetadata,
+	RegisterToolDefinition,
+	RegisterToolDefinitionFunction,
+	Version,
+} from "./types";
 
-// All the things required for an agent. Tools holds all the real functionality of the agent.
+/**
+ * All the things required for an agent. Tools holds all the real functionality of the agent.
+ */
 type AgentConfig = {
 	name: string;
-	version: string;
+	version: Version;
 	binding: string;
 	url_prefix: string;
 	tools: RegisterToolDefinition<any, any>[];
 };
 
 /**
- * A simple wrapper around the McpAgent class to create a new agent class with a server and tools.
- * NOTE: The name of the agent is always "AgentClass" by default, but cloudflare requires all agents
- * have special names so when you destructure the results, rename that argument to something more descriptive.
+ * Creates a wrapper around `McpAgent` that defines an agent with a server and tools.
  *
- * @param config - The configuration for the agent
- * @returns An AgentClass and it's associated metadata object. Use this to export the agent and metadata from the agent file.
+ * Notes
+ * -----
+ * The returned class is always named `AgentClass`. Cloudflare requires agents to
+ * have unique exported names, so when destructuring the result you should rename
+ * the class to something descriptive.
+ *
+ * Example:
+ * ```ts
+ * const { AgentClass: MyAgent, metadata } = createAgent(config);
+ * ```
+ *
+ * @param config Configuration for the agent.
+ * Includes:
+ * - `name` – agent name
+ * - `version` – agent version
+ * - `binding` – Cloudflare binding
+ * - `url_prefix` – route prefix
+ * - `tools` – array of tools created with `defineTool`
+ *
+ * @returns Object containing:
+ * - `AgentClass` – the generated agent class
+ * - `metadata` – associated metadata for the agent
  */
 export function defineAgent(config: AgentConfig) {
 	const AgentClass = class extends McpAgent {
@@ -43,4 +72,39 @@ export function defineAgent(config: AgentConfig) {
 	};
 
 	return { AgentClass, metadata };
+}
+
+/**
+ * Helper for defining MCP tools with improved type inference.
+ *
+ * This function wraps a `RegisterToolDefinitionFunction` and converts it into a
+ * `RegisterToolDefinition`. It preserves strong typing for the tool's input and
+ * output schemas while normalizing the structure expected by the MCP runtime.
+ *
+ * In particular, it:
+ * - Infers input/output argument types from the provided schemas
+ * - Maps the tool definition fields into the `{ name, config, cb }` format
+ * - Returns a correctly typed `RegisterToolDefinition`
+ *
+ * @param def Tool definition describing the tool's metadata, schemas, and handler.
+ *
+ * @returns A normalized `RegisterToolDefinition` object suitable for agent
+ * registration.
+ */
+export function defineTool<
+	OutputArgs extends ZodRawShapeCompat | AnySchema,
+	InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
+>(def: RegisterToolDefinitionFunction<OutputArgs, InputArgs>) {
+	return {
+		name: def.name,
+		config: {
+			title: def.title,
+			description: def.description,
+			inputSchema: def.inputSchema,
+			outputSchema: def.outputSchema,
+			annotations: def.annotations,
+			_meta: def._meta,
+		},
+		cb: def.function,
+	} as RegisterToolDefinition<OutputArgs, InputArgs>;
 }

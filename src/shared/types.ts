@@ -6,7 +6,9 @@ import type {
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 import { McpAgent } from "agents/mcp";
 
-type MCPResponseType =
+export type Version = `${number}.${number}.${number}`;
+
+export type MCPResponseType =
 	| "text"
 	| "audio"
 	| "image"
@@ -64,7 +66,7 @@ export type RegisterToolDefinition<
 };
 
 // Same as RegisterToolDefinition, but with a function instead of a callback for nicer typing
-type RegisterToolDefinitionFunction<
+export type RegisterToolDefinitionFunction<
 	OutputArgs extends ZodRawShapeCompat | AnySchema,
 	InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
 > = {
@@ -77,27 +79,3 @@ type RegisterToolDefinitionFunction<
 	_meta?: Record<string, unknown>;
 	function: ToolCallback<InputArgs>;
 };
-
-/**
- * A simple wrapper around the RegisterToolDefinition type so that there are implied types.
- *
- * @param def - The tool definition
- * @returns A RegisterToolDefinition object
- */
-export function defineTool<
-	OutputArgs extends ZodRawShapeCompat | AnySchema,
-	InputArgs extends undefined | ZodRawShapeCompat | AnySchema = undefined,
->(def: RegisterToolDefinitionFunction<OutputArgs, InputArgs>) {
-	return {
-		name: def.name,
-		config: {
-			title: def.title,
-			description: def.description,
-			inputSchema: def.inputSchema,
-			outputSchema: def.outputSchema,
-			annotations: def.annotations,
-			_meta: def._meta,
-		},
-		cb: def.function,
-	} as RegisterToolDefinition<OutputArgs, InputArgs>;
-}

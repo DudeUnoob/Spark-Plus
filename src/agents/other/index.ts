@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { defineAgent } from "../../shared/agent-creator";
-import { defineTool } from "../../shared/types";
+import { defineAgent, defineTool } from "../../shared/agent-creator";
 
-const { AgentClass: OtherServer, metadata } = defineAgent({
+export const { AgentClass: OtherServer, metadata } = defineAgent({
 	name: "Other Server",
 	version: "1.0.0",
 	binding: "other",
@@ -24,5 +23,3 @@ const { AgentClass: OtherServer, metadata } = defineAgent({
 		}),
 	],
 });
-
-export { metadata, OtherServer };

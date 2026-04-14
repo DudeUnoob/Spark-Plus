@@ -18,8 +18,17 @@ export const GRANT_SOURCES: GrantSourceConfig[] = [
 		id: "nih-guide",
 		name: "NIH Grants Guide",
 		base_url: "https://grants.nih.gov/",
-		entry_url: "https://grants.nih.gov/funding/searchGuide",
-		strategy: "scrape",
+		entry_url: "https://grants.nih.gov/grants/guide/index.html",
+		strategy: "search",
+		scrape_options: {
+			wait_for_ms: 1200,
+		},
+		search: {
+			query:
+				"site:grants.nih.gov/grants/guide/notice-files NIH funding opportunity announcement application due date",
+			limit: 4,
+			tbs: "sbd:1,qdr:y",
+		},
 	},
 	{
 		id: "nsf-funding",
@@ -27,6 +36,9 @@ export const GRANT_SOURCES: GrantSourceConfig[] = [
 		base_url: "https://www.nsf.gov/",
 		entry_url: "https://www.nsf.gov/funding/opportunities",
 		strategy: "scrape",
+		scrape_options: {
+			wait_for_ms: 1200,
+		},
 	},
 	{
 		id: "doe-science",
@@ -34,6 +46,9 @@ export const GRANT_SOURCES: GrantSourceConfig[] = [
 		base_url: "https://science.osti.gov/",
 		entry_url: "https://science.osti.gov/Funding-Opportunities",
 		strategy: "scrape",
+		scrape_options: {
+			wait_for_ms: 1000,
+		},
 	},
 	{
 		id: "nifa-usda",
@@ -41,6 +56,9 @@ export const GRANT_SOURCES: GrantSourceConfig[] = [
 		base_url: "https://www.nifa.usda.gov/",
 		entry_url: "https://www.nifa.usda.gov/grants/funding-opportunities",
 		strategy: "scrape",
+		scrape_options: {
+			wait_for_ms: 1200,
+		},
 	},
 	{
 		id: "darpa-opportunities",
@@ -48,5 +66,8 @@ export const GRANT_SOURCES: GrantSourceConfig[] = [
 		base_url: "https://www.darpa.mil/",
 		entry_url: "https://www.darpa.mil/work-with-us/opportunities",
 		strategy: "scrape",
+		scrape_options: {
+			wait_for_ms: 1000,
+		},
 	},
 ];

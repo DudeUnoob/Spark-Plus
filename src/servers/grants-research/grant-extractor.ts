@@ -88,6 +88,7 @@ export function score_candidates(
 				title: candidate.title,
 				excerpt: candidate.excerpt,
 				deadline_text: candidate.deadline_text,
+				deadline_iso: candidate.deadline_iso,
 				open_score: score,
 				is_likely_open: score >= 50,
 				reasons,
@@ -124,6 +125,7 @@ function extract_page_candidates(
 				excerpt: compress_whitespace(markdown.slice(0, 600)),
 				raw_text: fallback_text,
 				deadline_text: extract_deadline_text(fallback_text),
+				deadline_iso: to_deadline_iso(fallback_text),
 			});
 		}
 	}
@@ -160,6 +162,7 @@ function extract_markdown_link_candidates(
 				excerpt: context,
 				raw_text,
 				deadline_text: extract_deadline_text(raw_text),
+				deadline_iso: to_deadline_iso(raw_text),
 			});
 		}
 	}
@@ -194,6 +197,7 @@ function extract_heading_candidates(
 			excerpt: snippet,
 			raw_text,
 			deadline_text: extract_deadline_text(raw_text),
+			deadline_iso: to_deadline_iso(raw_text),
 		});
 	}
 
@@ -250,7 +254,7 @@ function extract_deadline_text(text: string): string | undefined {
 	return undefined;
 }
 
-function extract_deadline_date(text: string): Date | undefined {
+export function extract_deadline_date(text: string): Date | undefined {
 	const month_date = text.match(
 		/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{4}\b/i,
 	);
@@ -264,6 +268,12 @@ function extract_deadline_date(text: string): Date | undefined {
 	const parsed = new Date(numeric_date[0]);
 	if (!Number.isNaN(parsed.getTime())) return parsed;
 	return undefined;
+}
+
+function to_deadline_iso(text: string): string | undefined {
+	const deadline = extract_deadline_date(text);
+	if (!deadline) return undefined;
+	return deadline.toISOString();
 }
 
 function dedupe_candidates(candidates: GrantCandidate[]): GrantCandidate[] {

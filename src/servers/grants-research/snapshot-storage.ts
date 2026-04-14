@@ -1,11 +1,12 @@
 import { FIRECRAWL_PAGE_BUDGET_TOTAL } from "./sources";
-import type { BudgetState, GrantSnapshot } from "./types";
+import type { BudgetState, GrantRecord, GrantSnapshot, LastListedGrantResults } from "./types";
 
 const SNAPSHOT_KEY = "grants:snapshot:v1";
 const REFRESH_LOCK_KEY = "grants:refresh-lock:v1";
 const SCHEDULE_ID_KEY = "grants:schedule-id:v1";
 const BUDGET_STATE_KEY = "grants:budget-state:v1";
 const BUDGET_RESERVATION_KEY = "grants:budget-reservation:v1";
+const LAST_LISTED_RESULTS_KEY = "grants:last-listed-results:v1";
 
 type RefreshLock = {
 	until_epoch_ms: number;
@@ -20,6 +21,7 @@ type CommitBudgetUsageOptions = {
 	actual_pages_used: number;
 	refreshed_at_iso: string;
 	was_early_refresh: boolean;
+	count_as_refresh?: boolean;
 };
 
 export async function get_snapshot(
@@ -34,6 +36,36 @@ export async function save_snapshot(
 	snapshot: GrantSnapshot,
 ): Promise<void> {
 	await storage.put(SNAPSHOT_KEY, snapshot);
+}
+
+export async function merge_grants_into_snapshot(
+	storage: DurableObjectStorage,
+	grants: GrantRecord[],
+): Promise<GrantSnapshot | null> {
+	if (grants.length === 0) return get_snapshot(storage);
+	const snapshot = await get_snapshot(storage);
+	if (!snapshot) return null;
+
+	const grant_by_id = new Map(grants.map((grant) => [grant.id, grant]));
+	const next_snapshot: GrantSnapshot = {
+		...snapshot,
+		grants: snapshot.grants.map((grant) => grant_by_id.get(grant.id) ?? grant),
+	};
+	await save_snapshot(storage, next_snapshot);
+	return next_snapshot;
+}
+
+export async function get_last_listed_results(
+	storage: DurableObjectStorage,
+): Promise<LastListedGrantResults | null> {
+	return (await storage.get<LastListedGrantResults>(LAST_LISTED_RESULTS_KEY)) ?? null;
+}
+
+export async function save_last_listed_results(
+	storage: DurableObjectStorage,
+	results: LastListedGrantResults,
+): Promise<void> {
+	await storage.put(LAST_LISTED_RESULTS_KEY, results);
 }
 
 export function is_snapshot_stale(
@@ -126,6 +158,7 @@ export async function commit_budget_usage(
 		actual_pages_used,
 		refreshed_at_iso,
 		was_early_refresh,
+		count_as_refresh,
 	}: CommitBudgetUsageOptions,
 ): Promise<BudgetState> {
 	const reservation = await storage.get<BudgetReservation>(BUDGET_RESERVATION_KEY);
@@ -145,8 +178,10 @@ export async function commit_budget_usage(
 		total_pages_cap: budget_state.total_pages_cap,
 		pages_used_total,
 		pages_remaining: Math.max(0, budget_state.total_pages_cap - pages_used_total),
-		refresh_count: budget_state.refresh_count + 1,
-		last_refresh_at: refreshed_at_iso,
+		refresh_count: budget_state.refresh_count + (count_as_refresh === false ? 0 : 1),
+		last_refresh_at: count_as_refresh === false
+			? budget_state.last_refresh_at
+			: refreshed_at_iso,
 		last_early_refresh_at: was_early_refresh
 			? refreshed_at_iso
 			: budget_state.last_early_refresh_at,

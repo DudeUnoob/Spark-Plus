@@ -170,6 +170,7 @@ dist
 
 .dev.vars
 .wrangler/
+.firecrawl/
 
 .dev.vars*
 !.dev.vars.example

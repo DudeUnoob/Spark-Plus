@@ -6,7 +6,7 @@ export type RefreshDecisionReason =
 	| "budget_exhausted"
 	| "budget_low";
 
-export type SourceStrategy = "scrape" | "crawl";
+export type SourceStrategy = "scrape" | "crawl" | "search";
 
 export type GrantSourceConfig = {
 	id: string;
@@ -16,6 +16,11 @@ export type GrantSourceConfig = {
 	strategy: SourceStrategy;
 	scrape_options?: {
 		wait_for_ms?: number;
+	};
+	search?: {
+		query: string;
+		limit?: number;
+		tbs?: string;
 	};
 	crawl?: {
 		include_paths?: string[];
@@ -47,6 +52,7 @@ export type GrantCandidate = {
 	excerpt: string;
 	raw_text: string;
 	deadline_text?: string;
+	deadline_iso?: string;
 };
 
 export type GrantRecord = {
@@ -58,10 +64,21 @@ export type GrantRecord = {
 	title: string;
 	excerpt: string;
 	deadline_text?: string;
+	deadline_iso?: string;
+	amount_summary?: string;
+	eligibility_summary?: string;
+	scope_summary?: string;
+	detail_enriched_at?: string;
 	open_score: number;
 	is_likely_open: boolean;
 	reasons: string[];
 	fetched_at: string;
+};
+
+export type LastListedGrantResults = {
+	grant_ids: string[];
+	query?: string;
+	saved_at: string;
 };
 
 export type SourceRefreshStats = {
@@ -71,9 +88,12 @@ export type SourceRefreshStats = {
 	strategy: SourceStrategy;
 	pages_fetched: number;
 	candidates_extracted: number;
+	subrequests_made: number;
+	poll_attempts: number;
 	duration_ms: number;
 	status: "ok" | "error";
 	error?: string;
+	warning?: string;
 };
 
 export type GrantSnapshot = {

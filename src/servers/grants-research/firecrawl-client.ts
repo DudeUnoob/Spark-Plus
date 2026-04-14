@@ -44,19 +44,48 @@ type CrawlStatusResponse = {
 	}>;
 };
 
+type SearchResponse = {
+	success?: boolean;
+	data?: {
+		web?: Array<{
+			url?: string;
+			title?: string;
+			description?: string;
+			markdown?: string;
+			links?: string[];
+			metadata?: {
+				title?: string;
+				url?: string;
+				sourceURL?: string;
+				statusCode?: number;
+			};
+			warning?: string;
+		}>;
+	};
+};
+
+type FirecrawlUsageSnapshot = {
+	total_subrequests: number;
+	crawl_polls: number;
+};
+
 const DEFAULT_OPTIONS: Required<FirecrawlClientOptions> = {
 	base_url: "https://api.firecrawl.dev/v2",
 	max_retries: 2,
 	min_delay_ms: 600,
 	jitter_ms: 250,
 	poll_interval_ms: 2000,
-	max_poll_attempts: 25,
+	max_poll_attempts: 6,
 };
 
 export class FirecrawlClient {
 	private readonly api_key: string;
 	private readonly options: Required<FirecrawlClientOptions>;
 	private readonly last_request_by_domain = new Map<string, number>();
+	private readonly usage = {
+		total_subrequests: 0,
+		crawl_polls: 0,
+	};
 
 	constructor(api_key: string, options?: FirecrawlClientOptions) {
 		this.api_key = api_key;
@@ -64,12 +93,25 @@ export class FirecrawlClient {
 	}
 
 	async scrape_source(source: GrantSourceConfig): Promise<FirecrawlPage[]> {
-		await this.wait_for_domain_slot(source.base_url);
+		const page = await this.scrape_url(
+			source.entry_url,
+			source.base_url,
+			source.scrape_options?.wait_for_ms ?? 750,
+		);
+		return [page];
+	}
+
+	async scrape_url(
+		url: string,
+		source_url?: string,
+		wait_for_ms = 750,
+	): Promise<FirecrawlPage> {
+		await this.wait_for_domain_slot(url);
 		const payload = {
-			url: source.entry_url,
+			url,
 			formats: ["markdown", "links"],
 			onlyMainContent: true,
-			waitFor: source.scrape_options?.wait_for_ms ?? 750,
+			waitFor: wait_for_ms,
 			timeout: 30000,
 			blockAds: true,
 			proxy: "auto",
@@ -82,10 +124,48 @@ export class FirecrawlClient {
 		});
 
 		if (!response.success || !response.data?.markdown) {
-			throw new Error(`Scrape failed for ${source.entry_url}`);
+			throw new Error(`Scrape failed for ${url}`);
 		}
 
-		return [this.to_page(response.data, source.entry_url)];
+		return this.to_page(response.data, source_url ?? url);
+	}
+
+	async search_source(
+		source: GrantSourceConfig,
+		max_pages_per_source: number,
+	): Promise<FirecrawlPage[]> {
+		if (!source.search?.query) {
+			throw new Error(`Search query missing for ${source.id}`);
+		}
+		await this.wait_for_domain_slot(source.base_url);
+		const effective_limit = Math.max(
+			1,
+			Math.min(max_pages_per_source, source.search.limit ?? max_pages_per_source),
+		);
+		const response = await this.request_json<SearchResponse>("/search", {
+			method: "POST",
+			body: JSON.stringify({
+				query: source.search.query,
+				limit: effective_limit,
+				tbs: source.search.tbs,
+				scrapeOptions: {
+					formats: ["markdown", "links"],
+					onlyMainContent: true,
+					timeout: 30000,
+					waitFor: source.scrape_options?.wait_for_ms ?? 750,
+					blockAds: true,
+					proxy: "auto",
+					maxAge: 1000 * 60 * 60 * 12,
+				},
+			}),
+		});
+		const pages = (response.data?.web ?? [])
+			.filter((item) => Boolean(item.markdown))
+			.map((item) => this.to_page(item, source.entry_url));
+		if (pages.length === 0) {
+			throw new Error(`Search returned no scraped grant pages for ${source.entry_url}`);
+		}
+		return pages;
 	}
 
 	async crawl_source(
@@ -112,7 +192,7 @@ export class FirecrawlClient {
 				formats: ["markdown", "links"],
 				onlyMainContent: true,
 				timeout: 30000,
-				waitFor: 750,
+				waitFor: source.scrape_options?.wait_for_ms ?? 750,
 				blockAds: true,
 				proxy: "auto",
 				maxAge: 1000 * 60 * 60 * 12,
@@ -143,10 +223,26 @@ export class FirecrawlClient {
 			const pages = (status.data ?? [])
 				.filter((item) => Boolean(item.markdown))
 				.map((item) => this.to_page(item, source.entry_url));
+			if (pages.length === 0) {
+				throw new Error(`Crawl completed with no markdown pages for ${source.entry_url}`);
+			}
 			return pages;
 		}
 
-		throw new Error(`Crawl timed out for ${source.entry_url}`);
+		throw new Error(
+			`Crawl timed out for ${source.entry_url} after ${this.options.max_poll_attempts} polls`,
+		);
+	}
+
+	get_usage_snapshot(): FirecrawlUsageSnapshot {
+		return { ...this.usage };
+	}
+
+	get_usage_delta(before: FirecrawlUsageSnapshot): FirecrawlUsageSnapshot {
+		return {
+			total_subrequests: this.usage.total_subrequests - before.total_subrequests,
+			crawl_polls: this.usage.crawl_polls - before.crawl_polls,
+		};
 	}
 
 	private async request_json<T>(
@@ -156,6 +252,7 @@ export class FirecrawlClient {
 		let attempt = 0;
 		while (true) {
 			try {
+				this.record_request(path, init.method);
 				const response = await fetch(`${this.options.base_url}${path}`, {
 					method: init.method,
 					headers: {
@@ -183,6 +280,13 @@ export class FirecrawlClient {
 				attempt++;
 				await sleep(retry_backoff_ms(attempt));
 			}
+		}
+	}
+
+	private record_request(path: string, method: "GET" | "POST"): void {
+		this.usage.total_subrequests++;
+		if (method === "GET" && path.startsWith("/crawl/")) {
+			this.usage.crawl_polls++;
 		}
 	}
 

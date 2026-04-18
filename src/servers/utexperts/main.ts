@@ -6,6 +6,31 @@ const BASE = "https://experts.utexas.edu";
 const RESULTS_URL = `${BASE}/search/results`;
 const REFERER = `${BASE}/search/`;
 
+const SCHOOLS = [
+	"Cockrell School of Engineering",
+	"College of Education",
+	"College of Fine Arts",
+	"College of Liberal Arts",
+	"College of Natural Sciences",
+	"College of Pharmacy",
+	"Dell Medical School",
+	"Graduate School",
+	"Jackson School of Geosciences",
+	"Lyndon B Johnson School of Public Affairs",
+	"Moody College of Communication",
+	"Office of the Executive Vice President and Provost",
+	"Office of the President",
+	"Office of the Vice President for Research, Scholarship and Creative Endeavors",
+	"Office of the Vice Provost and Dean of Graduate Studies",
+	"Red McCombs School of Business",
+	"School of Architecture",
+	"School of Information",
+	"School of Law",
+	"School of Nursing",
+	"School of Social Work",
+	"School of Undergraduate Studies",
+] as const;
+
 type UTExpertsResearcher = {
 	name: string;
 	path: string;
@@ -125,8 +150,9 @@ function parseResearchers(document: Document): UTExpertsResearcher[] {
 			if (mail) {
 				const href = mail.getAttribute("href") || "";
 				email =
-					decodeURIComponent(href.replace(/^mailto:/i, "").split("?")[0] || "").trim() ||
-					null;
+					decodeURIComponent(
+						href.replace(/^mailto:/i, "").split("?")[0] || "",
+					).trim() || null;
 			}
 
 			const fullText = (copyP.textContent || "").replace(/\s+/g, " ").trim();
@@ -167,10 +193,30 @@ export const { McpServerClass: UTExperts, metadata: utExpertsData } =
 				description:
 					"Searches UT Austin Experts (experts.utexas.edu) by exactly one of: keyword, school (College/School/Unit label), or lastname. Returns JSON with source, query, count, noResults, and researchers.",
 				inputSchema: {
-					keyword: z.string().optional(),
-					school: z.string().optional(),
-					lastname: z.string().optional(),
-					pretty: z.boolean().optional(),
+					keyword: z
+						.string()
+						.optional()
+						.describe(
+							"Search for an expert by any set of keywords. Use this for general search.",
+						),
+					school: z
+						.enum(SCHOOLS)
+						.optional()
+						.describe(
+							"Search for an expert by the college, school, or unit they are affiliated with. This will likely give the most results.",
+						),
+					lastname: z
+						.string()
+						.optional()
+						.describe(
+							"Search for an expert by their last name. Only use this if you are confident about a person, since it will give you less useful results.",
+						),
+					pretty: z
+						.boolean()
+						.optional()
+						.describe(
+							"Whether to pretty print the JSON response. This is just for debugging, and so you can ignore it.",
+						),
 				},
 				function: async function ({
 					keyword,
@@ -179,7 +225,7 @@ export const { McpServerClass: UTExperts, metadata: utExpertsData } =
 					pretty,
 				}: {
 					keyword?: string;
-					school?: string;
+					school?: (typeof SCHOOLS)[number];
 					lastname?: string;
 					pretty?: boolean;
 				}) {

@@ -4,12 +4,17 @@
 declare namespace Cloudflare {
 	interface GlobalProps {
 		mainModule: typeof import("./src/project-source");
-		durableNamespaces: "BasicTester" | "OtherServer" | "GrantsResearchServer";
+		durableNamespaces:
+			| "BasicTester"
+			| "OtherServer"
+			| "GrantsResearchServer"
+			| "UTExperts";
 	}
 	interface Env {
 		basic: DurableObjectNamespace<import("./src/project-source").BasicTester>;
 		other: DurableObjectNamespace<import("./src/project-source").OtherServer>;
 		grantsResearch: DurableObjectNamespace<import("./src/project-source").GrantsResearchServer>;
+		utexasexperts: DurableObjectNamespace<import("./src/project-source").UTExperts>;
 	}
 }
 interface Env extends Cloudflare.Env {}

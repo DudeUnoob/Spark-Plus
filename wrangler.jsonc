@@ -24,6 +24,10 @@
 			"tag": "v4",
 			"new_sqlite_classes": ["GrantsResearchServer"],
 		},
+		{
+			"tag": "v5",
+			"new_sqlite_classes": ["UTExperts"],
+		},
 	],
 	"durable_objects": {
 		"bindings": [
@@ -38,6 +42,10 @@
 			{
 				"class_name": "GrantsResearchServer",
 				"name": "grantsResearch",
+			},
+			{
+				"class_name": "UTExperts",
+				"name": "utexasexperts",
 			},
 		],
 	},

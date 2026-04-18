@@ -4,6 +4,7 @@ import {
 	grantsResearchData,
 } from "./servers/grants-research/main";
 import { OtherServer, otherData } from "./servers/other/main";
+import { UTExperts, utExpertsData } from "./servers/utexperts/main";
 
 import { McpServerMetadata } from "./shared/general-types";
 
@@ -14,6 +15,7 @@ const MCP_SERVERS = [
 	basicTesterData,
 	otherData,
 	grantsResearchData,
+	utExpertsData,
 ] as McpServerMetadata[];
 
 export default {
@@ -35,4 +37,4 @@ export default {
 // + ------------------------------------------------------------- +
 // |   NOTE: Update this with all the MCP servers' class exports   |
 // + ------------------------------------------------------------- +
-export { BasicTester, OtherServer, GrantsResearchServer }; // Required for cloudflare behind the scenes functionality.
+export { BasicTester, OtherServer, GrantsResearchServer, UTExperts }; // Required for cloudflare behind the scenes functionality.
